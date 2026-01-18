@@ -1,73 +1,74 @@
-#include <iostream>
-#include <vector>
-#include <string>
-using namespace std;
+#include <stdio.h>
+#include <string.h>
 
-int main()
-{
+int main() {
     int n;
-    cout<<"\nEnter number of non terminals: ";
-    cin>>n;
-    cout<<"\nEnter non terminals one by one: ";
-    int i;
-    vector<string> nonter(n);
-    vector<int> leftrecr(n,0);
-    for(i=0;i<n;++i) {
-            cout<<"\nNon terminal "<<i+1<<" : ";
-        cin>>nonter[i];
-    }
-    vector<vector<string> > prod;
-    cout<<"\nEnter '^' for null";
-    for(i=0;i<n;++i) {
-        cout<<"\nNumber of "<<nonter[i]<<" productions: ";
-        int k;
-        cin>>k;
-        int j;
-        cout<<"\nOne by one enter all "<<nonter[i]<<" productions";
-        vector<string> temp(k);
-        for(j=0;j<k;++j) {
-            cout<<"\nRHS of production "<<j+1<<": ";
-            string abc;
-            cin>>abc;
-            temp[j]=abc;
-            if(nonter[i].length()<=abc.length()&&nonter[i].compare(abc.substr(0,nonter[i].length()))==0)
-                leftrecr[i]=1;
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    char prod[20][50];
+    char lhs[20];
+    char rhs[20][10][50]; // rhs[i][j] = j-th alternative of i-th production
+    int altCount[20] = {0};
+
+    printf("Enter productions in format A->α|β:\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%s", prod[i]);
+        lhs[i] = prod[i][0]; // LHS
+
+        char *ptr = strchr(prod[i], '>');
+        ptr++; // move past '>'
+        char *token = strtok(ptr, "|");
+        int j = 0;
+        while (token) {
+            strcpy(rhs[i][j++], token);
+            token = strtok(NULL, "|");
         }
-        prod.push_back(temp);
+        altCount[i] = j;
     }
-    for(i=0;i<n;++i) {
-        cout<<leftrecr[i];
-    }
-    for(i=0;i<n;++i) {
-        if(leftrecr[i]==0)
-            continue;
-        int j;
-        nonter.push_back(nonter[i]+"'");
-        vector<string> temp;
-        for(j=0;j<prod[i].size();++j) {
-            if(nonter[i].length()<=prod[i][j].length()&&nonter[i].compare(prod[i][j].substr(0,nonter[i].length()))==0) {
-                string abc=prod[i][j].substr(nonter[i].length(),prod[i][j].length()-nonter[i].length())+nonter[i]+"'";
-                temp.push_back(abc);
-                prod[i].erase(prod[i].begin()+j);
-                --j;
-            }
-            else {
-                prod[i][j]+=nonter[i]+"'";
+
+    printf("\nAfter eliminating left recursion:\n");
+
+    for (int i = 0; i < n; i++) {
+        char direct[10][50];
+        char indirect[10][50];
+        int dCount = 0, indCount = 0;
+
+        // Split direct (starts with lhs) and indirect alternatives
+        for (int j = 0; j < altCount[i]; j++) {
+            if (rhs[i][j][0] == lhs[i]) {
+                strcpy(direct[dCount++], rhs[i][j]+1); // remove lhs from start
+            } else {
+                strcpy(indirect[indCount++], rhs[i][j]);
             }
         }
-        temp.push_back("^");
-        prod.push_back(temp);
-    }
-    cout<<"\n\n";
-    cout<<"\nNew set of non-terminals: ";
-    for(i=0;i<nonter.size();++i)
-        cout<<nonter[i]<<" ";
-    cout<<"\n\nNew set of productions: ";
-    for(i=0;i<nonter.size();++i) {
-        int j;
-        for(j=0;j<prod[i].size();++j) {
-            cout<<"\n"<<nonter[i]<<" -> "<<prod[i][j];
+
+        // No direct left recursion
+        if (dCount == 0) {
+            printf("%c->", lhs[i]);
+            for (int j = 0; j < altCount[i]; j++) {
+                printf("%s", rhs[i][j]);
+                if (j != altCount[i]-1) printf("|");
+            }
+            printf("\n");
+        } else {
+            // Create new non-terminal
+            char newNT = lhs[i] + '\''; // e.g., A'
+            printf("%c->", lhs[i]);
+            for (int j = 0; j < indCount; j++) {
+                printf("%s%c", indirect[j], newNT);
+                if (j != indCount-1) printf("|");
+            }
+            printf("\n");
+
+            printf("%c->", newNT);
+            for (int j = 0; j < dCount; j++) {
+                printf("%s%c", direct[j], newNT);
+                printf("|");
+            }
+            printf("#\n"); // epsilon
         }
     }
+
     return 0;
 }
