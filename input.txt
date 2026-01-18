@@ -1,4 +1,4 @@
 my name is
-maruf
-hossin wow
+//maruf
+/*hossin wow*/
 fi ne
