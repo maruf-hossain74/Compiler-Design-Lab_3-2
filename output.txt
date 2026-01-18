@@ -1,0 +1,3 @@
+Total Characters: 34
+Total Words: 8
+Total Lines: 4
