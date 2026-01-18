@@ -2,72 +2,109 @@
 #include <ctype.h>
 #include <string.h>
 
-void addToResult(char result[], char val) {
-    int i;
-    for (i = 0; result[i] != '\0'; i++) {
-        if (result[i] == val)
+int n;
+char prod[20][20];
+char FIRST[26][20];
+int firstCount[26];
+int visited[26];
+
+void addFirst(char nt, char ch) {
+    int idx = nt - 'A';
+    for (int i = 0; i < firstCount[idx]; i++)
+        if (FIRST[idx][i] == ch)
             return;
-    }
-    result[i] = val;
-    result[i + 1] = '\0';
+
+    FIRST[idx][firstCount[idx]++] = ch;
 }
 
-void first(char result[], char symbol) {
-    if (!isupper(symbol)) {
-        addToResult(result, symbol);
-        return;
+void findFirst(char nt);
+
+void processRHS(char nt, char *rhs) {
+    int i = 0;
+    int epsilonFound = 1;
+
+    while (rhs[i] != '\0' && epsilonFound) {
+        epsilonFound = 0;
+
+        // Terminal
+        if (!isupper(rhs[i])) {
+            addFirst(nt, rhs[i]);
+            return;
+        }
+
+        // Non-terminal
+        findFirst(rhs[i]);
+        int idx = rhs[i] - 'A';
+
+        for (int j = 0; j < firstCount[idx]; j++) {
+            if (FIRST[idx][j] == '#')
+                epsilonFound = 1;
+            else
+                addFirst(nt, FIRST[idx][j]);
+        }
+
+        i++;
     }
 
-    switch (symbol) {
-        case 'A':
-            addToResult(result, 'a');
-            addToResult(result, 'e'); // e represents ε
-            break;
+    if (epsilonFound)
+        addFirst(nt, '#');
+}
 
-        case 'B':
-            addToResult(result, 'b');
-            addToResult(result, 'e');
-            break;
+void findFirst(char nt) {
+    int idx = nt - 'A';
+    if (visited[idx])
+        return;
 
-        case 'C':
-            addToResult(result, 'c');
-            break;
+    visited[idx] = 1;
 
-        case 'S': {
-            char temp[10] = "";
-            first(temp, 'A');
+    for (int i = 0; i < n; i++) {
+        if (prod[i][0] == nt) {
 
-            for (int i = 0; temp[i] != '\0'; i++) {
-                if (temp[i] != 'e')
-                    addToResult(result, temp[i]);
+            char rhs[20];
+            strcpy(rhs, prod[i] + 3);  // skip A->
+
+            char *token = strtok(rhs, "|");
+            while (token != NULL) {
+                processRHS(nt, token);
+                token = strtok(NULL, "|");
             }
-
-            if (strchr(temp, 'e')) {
-                first(temp, 'B');
-                for (int i = 0; temp[i] != '\0'; i++) {
-                    if (temp[i] != 'e')
-                        addToResult(result, temp[i]);
-                }
-            }
-
-            if (strchr(temp, 'e')) {
-                first(temp, 'C');
-                for (int i = 0; temp[i] != '\0'; i++)
-                    addToResult(result, temp[i]);
-            }
-            break;
         }
     }
 }
 
 int main() {
-    char result[10] = "";
+    // 🔹 IMPORTANT INITIALIZATION
+    memset(FIRST, 0, sizeof(FIRST));
+    memset(firstCount, 0, sizeof(firstCount));
+    memset(visited, 0, sizeof(visited));
 
-    first(result, 'S');
-    printf("FIRST(S) = { ");
-    for (int i = 0; result[i] != '\0'; i++)
-        printf("%c ", result[i]);
-    printf("}\n");
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    printf("Enter productions (use # for epsilon):\n");
+    for (int i = 0; i < n; i++)
+        scanf("%s", prod[i]);
+
+    for (int i = 0; i < n; i++)
+        findFirst(prod[i][0]);
+
+    printf("\nFIRST sets:\n");
+
+    int printed[26] = {0};
+    for (int i = 0; i < n; i++) {
+        char nt = prod[i][0];
+        int idx = nt - 'A';
+
+        if (printed[idx])
+            continue;
+
+        printed[idx] = 1;
+
+        printf("FIRST(%c) = { ", nt);
+        for (int j = 0; j < firstCount[idx]; j++)
+            printf("%c ", FIRST[idx][j]);
+        printf("}\n");
+    }
 
     return 0;
 }
